@@ -1,0 +1,58 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - DATABASE_URL=postgresql://koda_user:koda_secure_password@postgres:5432/koda_db?schema=public
+      - KODA_ADMIN_PASSWORD=replace_with_secure_admin_password_123
+      - KODA_SESSION_SECRET=replace_with_random_hex_secret_min_32_characters_here
+      - ALLOWED_ORIGINS=http://localhost:3000
+      - DMCA_AGENT_EMAIL=dmca@koda.fm
+      - REDIS_URL=redis://redis:6379
+    volumes:
+      - koda_data:/app/data
+      - koda_uploads:/app/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: koda_user
+      POSTGRES_PASSWORD: koda_secure_password
+      POSTGRES_DB: koda_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U koda_user -d koda_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  koda_data:
+  koda_uploads:
+  postgres_data:

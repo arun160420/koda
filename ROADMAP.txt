@@ -1,0 +1,169 @@
+================================================================================
+KODA // PRODUCTION & COMMERCIAL ROADMAP
+Transforming MVP Prototype into a Secure, Scalable, Sellable Product
+================================================================================
+
+EXECUTIVE SUMMARY
+-----------------
+KODA has an exceptional aesthetic design, real-time WebSocket listening rooms,
+and a legal open-music streaming catalog. However, before publishing publicly or
+selling to a client/investor, critical architectural upgrades are required in
+security, database persistence, authentication, cloud storage, and legal compliance.
+
+Follow this 6-phase roadmap to make KODA fully production- and market-ready.
+
+================================================================================
+PHASE 1: SECURITY & API HARDENING (Immediate Priority)
+Estimated Time: 1 - 2 Hours
+Goal: Prevent server crashes, abuse, bot spam, and data exhaustion.
+================================================================================
+
+1. Rate Limiting:
+   - Install 'express-rate-limit'.
+   - Global API limit: Max 100 requests per minute per IP address.
+   - Strict action limits:
+     * Room creation (/api/rooms): Max 5 per 15 minutes per IP.
+     * Room chat (/api/rooms/:id/chat): Max 30 messages per minute.
+     * Playlist creation & comments: Max 10 actions per 5 minutes.
+     * Media uploads (/api/upload): Max 5 uploads per hour per user.
+
+2. Security Headers & Protection:
+   - Install 'helmet' to set secure HTTP headers (CSP, HSTS, X-Content-Type-Options,
+     X-Frame-Options).
+   - Configure strict CORS rules to ensure requests originate only from verified
+     domains.
+
+3. Input Validation & Anti-XSS Sanitization:
+   - Sanitize all user input fields (chat messages, tape notes, display names,
+     room vibes) using 'sanitize-html' or DOMPurify.
+   - Enforce server-side MIME type inspection (magic byte checks) for uploaded
+     audio to prevent malicious file uploads.
+
+================================================================================
+PHASE 2: DATABASE MIGRATION (Replace store.json)
+Estimated Time: 3 - 5 Hours
+Goal: Eliminate race conditions, file corruption, and thread-blocking I/O.
+================================================================================
+
+Current Problem:
+- KODA currently relies on 'store.json' via synchronous 'fs.writeFileSync()'.
+- Concurrent requests block the Node.js event loop and can corrupt data.
+- Cloud restarts (Render, Railway, Heroku) will wipe user data without expensive
+  persistent disks.
+
+Action Items:
+1. Choose Database:
+   - Recommended: PostgreSQL (Hosted via Supabase or Neon - free tier available).
+   - Alternative: SQLite with Prisma for local/single-server setups.
+
+2. Schema Architecture:
+   - Users:
+     * id, email, password_hash, name, handle, avatar_url, role, created_at
+   - Rooms:
+     * id, code, name, vibe, host_id, current_track_id, is_playing, started_at
+   - Playlists (Tapes):
+     * id, title, subtitle, description, created_by, created_at
+   - Playlist_Tracks:
+     * id, playlist_id, track_id, track_metadata (JSON), note, added_by, added_at
+   - Activity_Feed:
+     * id, user_id, action, track_data (JSON), message, likes_count, created_at
+
+3. Implementation:
+   - Integrate Prisma ORM or Drizzle ORM for automated migrations, typed queries,
+     and seamless database connection pooling.
+
+================================================================================
+PHASE 3: PRODUCTION USER AUTHENTICATION
+Estimated Time: 2 - 4 Hours
+Goal: Connect landing page buttons (Email, Google, Guest) to real identity providers.
+================================================================================
+
+1. Google OAuth 2.0 Integration:
+   - Configure OAuth client credentials in Google Cloud Console.
+   - Implement Google OAuth login via Passport.js or Supabase Auth.
+   - On successful callback, securely extract user profile, email, and avatar,
+     and sync into the database.
+
+2. Email & Password Authentication:
+   - Hash passwords with 'bcrypt' (minimum 12 salt rounds).
+   - Issue secure, HTTP-only, SameSite JWT session cookies.
+   - Add password reset flow (via SendGrid, Resend, or AWS SES).
+
+3. Guest Anonymous Access:
+   - Assign temporary guest session tokens for "Enter as Guest" users.
+   - Allow listening, queue voting, and chat, but prompt for account creation
+     before saving persistent playlists or creating permanent rooms.
+
+================================================================================
+PHASE 4: CLOUD AUDIO STORAGE & GLOBAL CDN
+Estimated Time: 2 - 3 Hours
+Goal: Move media off the local server disk to prevent disk full crashes.
+================================================================================
+
+1. Cloud Object Storage Setup:
+   - Recommended: Cloudflare R2 (0$ egress/bandwidth fees for audio streaming).
+   - Alternative: AWS S3 with CloudFront CDN.
+
+2. Direct-to-Cloud Uploads:
+   - Generate presigned upload URLs on the server.
+   - The browser uploads audio files directly to R2/S3, eliminating memory
+     overhead and timeout issues on your Node server.
+
+3. Audio Streaming Optimization:
+   - Enable HTTP Range Requests (Byte-range serving) so audio scrubbing and
+     seeking work instantly without buffering the whole file.
+   - Attach a custom CDN domain (e.g. cdn.koda-studio.com) with caching headers.
+
+================================================================================
+PHASE 5: LEGAL, COMPLIANCE & DMCA PROTECTION
+Estimated Time: 1 - 2 Hours
+Goal: Shield platform owners from copyright liabilities and legal disputes.
+================================================================================
+
+1. DMCA Notice & Takedown Mechanism:
+   - Create a public page (/dmca) with standard Digital Millennium Copyright Act
+     takedown procedures.
+   - Provide a designated DMCA agent email (e.g., dmca@yourdomain.com) and a
+     submission form for copyright holders.
+
+2. Legal Documents:
+   - Terms of Service: Explicitly stating users only upload content they hold
+     rights to broadcast or distribute.
+   - Privacy Policy: Transparent data collection policy covering cookies,
+     Google OAuth, and analytics.
+
+3. Admin Moderation Tools:
+   - Build a 1-click takedown / delete action in the admin dashboard for any
+     flagged room, chat message, or user upload.
+
+================================================================================
+PHASE 6: MONETIZATION & COMMERCIAL PACKAGING
+Estimated Time: 2 - 4 Hours
+Goal: Package the codebase for client handover or monetize live users.
+================================================================================
+
+Option A: Monetizing as a Live SaaS Product
+- Integrate Stripe Checkout or Lemon Squeezy:
+  * KODA Plus / Pro: Unlimited uploads, custom vanity room URLs (koda.fm/yourname),
+    lossless audio streaming, and verified crew badges.
+  * Virtual tipping for creator rooms.
+
+Option B: Selling as Software / Codebase to a Buyer
+- Clean documentation:
+  * SETUP_GUIDE.md detailing step-by-step installation.
+  * .env.example with every required credential clearly documented.
+  * Dockerfile and docker-compose.yml for 1-click local setup.
+  * 1-Click Deploy configurations for Render, Railway, and Vercel.
+
+================================================================================
+TIMELINE SUMMARY
+================================================================================
+Phase 1: Security & Rate Limiting        [Day 1]
+Phase 2: Database Migration              [Day 1 - 2]
+Phase 3: Real Authentication             [Day 3]
+Phase 4: Cloud Storage (Cloudflare R2)   [Day 4]
+Phase 5: Legal & DMCA                    [Day 5]
+Phase 6: Packaging / Monetization        [Day 5 - 6]
+
+Estimated Total Effort: ~12 to 20 engineering hours to reach enterprise-ready status.
+================================================================================

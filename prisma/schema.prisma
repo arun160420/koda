@@ -1,0 +1,190 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id                  String    @id @default(uuid())
+  email               String?   @unique
+  password_hash       String?
+  name                String
+  handle              String    @unique
+  avatar_url          String?
+  color               String?   @default("#ff5a1f")
+  role                String    @default("LISTENER") // "HOST", "LISTENER", "ADMIN", "GUEST"
+  tier                String    @default("free") // "free", "plus", "pro"
+  stripe_customer_id  String?
+  pro_expires_at      DateTime?
+  reset_token         String?
+  reset_token_expires DateTime?
+  created_at          DateTime  @default(now())
+
+  // Relationships
+  hosted_rooms      Room[]          @relation("RoomHost")
+  created_playlists Playlist[]      @relation("PlaylistCreator")
+  playlist_tracks   PlaylistTrack[] @relation("TrackAddedBy")
+  activity_items    ActivityFeed[]  @relation("UserActivity")
+  room_messages     RoomMessage[]   @relation("UserMessages")
+
+  @@map("users")
+}
+
+model Room {
+  id               String   @id @default(uuid())
+  code             String   @unique
+  name             String
+  subtitle         String?  @default("New listening room")
+  vibe             String   @default("Open format")
+  host_id          String
+  host             User     @relation("RoomHost", fields: [host_id], references: [id], onDelete: Cascade)
+  current_track_id String?
+  current_track    Json?
+  is_playing       Boolean  @default(false)
+  started_at       BigInt?
+  paused_position  Float    @default(0)
+  queue            Json?    @default("[]")
+  listeners        Json?    @default("[]")
+  created_at       DateTime @default(now())
+  updated_at       DateTime @updatedAt
+
+  messages RoomMessage[]
+
+  @@map("rooms")
+}
+
+model RoomMessage {
+  id         String   @id @default(uuid())
+  room_id    String
+  room       Room     @relation(fields: [room_id], references: [id], onDelete: Cascade)
+  user_id    String?
+  user       User?    @relation("UserMessages", fields: [user_id], references: [id], onDelete: SetNull)
+  user_data  Json? // Snapshot of sender { id, name, handle, avatar }
+  text       String
+  type       String   @default("chat") // "chat", "system", "queue_event"
+  created_at DateTime @default(now())
+
+  @@index([room_id, created_at])
+  @@map("room_messages")
+}
+
+model Playlist {
+  id               String   @id @default(uuid())
+  title            String
+  subtitle         String?
+  description      String?
+  is_collaborative Boolean  @default(true)
+  created_by       String?
+  creator          User?    @relation("PlaylistCreator", fields: [created_by], references: [id], onDelete: SetNull)
+  contributors     Json?    @default("[]")
+  comments         Json?    @default("[]")
+  created_at       DateTime @default(now())
+  updated_at       DateTime @updatedAt
+
+  tracks PlaylistTrack[]
+
+  @@map("playlists")
+}
+
+model PlaylistTrack {
+  id             String   @id @default(uuid())
+  playlist_id    String
+  playlist       Playlist @relation(fields: [playlist_id], references: [id], onDelete: Cascade)
+  track_id       String
+  track_metadata Json // Title, artist, album, duration, cover, streamUrl, etc.
+  note           String?
+  added_by       String?
+  added_by_user  User?    @relation("TrackAddedBy", fields: [added_by], references: [id], onDelete: SetNull)
+  added_by_data  Json? // Snapshot of user
+  position       Int      @default(0)
+  added_at       DateTime @default(now())
+
+  @@index([playlist_id, position])
+  @@map("playlist_tracks")
+}
+
+model ActivityFeed {
+  id          String   @id @default(uuid())
+  user_id     String?
+  user        User?    @relation("UserActivity", fields: [user_id], references: [id], onDelete: SetNull)
+  user_data   Json? // Snapshot of user
+  action      String
+  track_id    String?
+  track_data  Json?
+  message     String?
+  likes_count Int      @default(0)
+  created_at  DateTime @default(now())
+
+  @@index([created_at])
+  @@map("activity_feed")
+}
+
+model CatalogTrack {
+  id               String   @id @default(uuid())
+  title            String
+  artist           String
+  album            String?
+  duration         Float    @default(0)
+  full_duration    Float    @default(0)
+  cover            String?
+  stream_url       String
+  download_url     String?
+  link_url         String?
+  source_url       String?
+  license_url      String?
+  license_name     String?
+  rights_statement String?
+  year             String?
+  tag              String   @default("other")
+  language         String   @default("music")
+  source           String   @default("admin-catalog")
+  provider         String   @default("KODA shared catalog")
+  is_preview       Boolean  @default(false)
+  file_size        BigInt?
+  lyrics_text      String?
+  assets           Json?    @default("[]")
+  audio_filename   String?
+  artwork_filename String?
+  legacy_upload    Boolean  @default(false)
+  is_flagged       Boolean  @default(false)
+  flag_reason      String?
+  takedown_at      DateTime?
+  created_at       DateTime @default(now())
+  updated_at       DateTime @updatedAt
+
+  @@map("catalog_tracks")
+}
+
+model DmcaNotice {
+  id                   String    @id @default(uuid())
+  claimant_name        String
+  claimant_email       String
+  copyright_work       String
+  infringing_url       String
+  track_id             String?
+  good_faith_confirmed Boolean   @default(true)
+  signature            String
+  status               String    @default("pending") // "pending", "actioned", "dismissed"
+  admin_notes          String?
+  created_at           DateTime  @default(now())
+  actioned_at          DateTime?
+
+  @@map("dmca_notices")
+}
+
+model TipTransaction {
+  id             String   @id @default(uuid())
+  room_id        String
+  sender_name    String
+  sender_user_id String?
+  amount_cents   Int
+  currency       String   @default("usd")
+  message        String?
+  status         String   @default("completed") // "pending", "completed", "failed"
+  created_at     DateTime @default(now())
+
+  @@map("tip_transactions")
+}

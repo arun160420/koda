@@ -1,0 +1,10 @@
+node_modules/
+.env
+.env.*
+!.env.example
+
+# Persistent app data and uploaded media
+/data/store.json
+/data/catalog-media/
+/uploads/*
+!/uploads/.gitkeep

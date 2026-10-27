@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>KODA // TP-01 — Open-Music Listening Studio</title>
+  <meta name="description" content="KODA is a social music listening studio. Discover open-license tracks, create collaborative tapes, and listen together in real-time rooms." />
+  <meta name="keywords" content="music, listening rooms, collaborative playlists, open license, creative commons, social listening" />
+  <meta name="theme-color" content="#111112" />
+  <meta name="color-scheme" content="dark light" />
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="KODA — Open-Music Listening Studio" />
+  <meta property="og:description" content="Listen together. Discover open-license music, create collaborative tapes, and vibe in real-time rooms." />
+  <meta property="og:site_name" content="KODA" />
+
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="KODA — Open-Music Listening Studio" />
+  <meta name="twitter:description" content="Listen together. Discover open-license music, create collaborative tapes, and vibe in real-time rooms." />
+
+  <!-- Preconnect for fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+  <!-- App icon (inline SVG data URI) -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23111112'/%3E%3Crect x='8' y='14' width='4' height='10' rx='2' fill='%23ff683b' opacity='.7'/%3E%3Crect x='14' y='8' width='4' height='17' rx='2' fill='%23ff683b'/%3E%3Crect x='20' y='11' width='4' height='13' rx='2' fill='%23ff683b' opacity='.85'/%3E%3C/svg%3E" />
+
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <div id="app"></div>
+  <div id="reaction-layer" class="reaction-float-container"></div>
+  <div id="modal-root"></div>
+  <div id="toast-root"></div>
+  <audio id="studio-audio" crossorigin="anonymous" preload="auto"></audio>
+  <script src="/app.js"></script>
+</body>
+</html>
